@@ -31,7 +31,7 @@ Professional image generation with structured JSON control using Bria's FIBO mod
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/fibo-json-assistant.git
+git clone https://github.com/SUBHANGANI22/fibo-json-assistant
 cd fibo-json-assistant
 
 # Install dependencies
