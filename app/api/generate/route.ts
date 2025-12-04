@@ -23,8 +23,7 @@ export async function POST(req: Request) {
 
     console.log("🎨 Generating with FIBO...");
     console.log("Structured JSON:", JSON.stringify(body, null, 2));
-
-    // Step 1: Create the generation request
+        // Step 1: Initiate generation
     const generateResponse = await fetch(`${BRIA_API_BASE}/image/generate`, {
       method: "POST",
       headers: {
@@ -84,11 +83,11 @@ export async function POST(req: Request) {
       }
 
       const statusData = await statusResponse.json();
-      console.log("Full status response:", JSON.stringify(statusData, null, 2)); // Debug log
+      console.log("Full status response:", JSON.stringify(statusData, null, 2)); 
 
       // Check if completed
       if (statusData.status === "COMPLETED") {
-        // ✅ CORRECT: Extract image_url from result object
+        // Extract image_url from result object
         imageUrl = statusData.result?.image_url || statusData.result?.urls?.[0] || statusData.image_url;
         
         if (imageUrl) {
@@ -115,7 +114,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Step 3: Fetch the actual image
+    // Step 3: Fetching the actual image
     console.log("📥 Fetching image from:", imageUrl);
     const imageResponse = await fetch(imageUrl);
     
