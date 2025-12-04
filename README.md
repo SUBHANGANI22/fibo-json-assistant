@@ -1,3 +1,7 @@
+![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![FIBO](https://img.shields.io/badge/FIBO-Bria-purple)
 ```markdown
 # 🎨 FIBO JSON Assistant
 
