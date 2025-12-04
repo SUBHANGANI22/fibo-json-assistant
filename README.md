@@ -16,10 +16,11 @@ Professional image generation with structured JSON control using Bria's FIBO mod
 **Built for:** Bria FIBO Hackathon 2025
 
 ## ✨ Features
-
+Done
 - 🎛️ **Visual JSON Editor** - Control camera, lighting, colors through intuitive UI
 - 🎨 **Style Presets** - Save and reuse JSON configurations
 - 🔄 **Batch Generation** - Generate multiple images with consistent styling
+Anticipated Features
 - 📊 **Generation History** - Track and reproduce all generations
 - 💾 **Export System** - Download images with their JSON configurations
 - 🌈 **HDR Support** - 16-bit color depth for professional workflows
