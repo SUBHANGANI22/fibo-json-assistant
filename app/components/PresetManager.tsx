@@ -109,7 +109,7 @@ function loadPreset(preset: Preset) {
         {/* Save Button */}
         <button
           onClick={() => setShowSaveDialog(true)}
-          className="w-full mb-4 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 font-semibold flex items-center justify-center gap-2"
+          className="w-full mb-4 px-4 py-3 bg-gradient-to-r from-gray-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 font-semibold flex items-center justify-center gap-2"
         >
           <Save className="w-5 h-5" />
           Save Current Style as Preset
@@ -196,7 +196,7 @@ function loadPreset(preset: Preset) {
                     ) : (
                       <button
                         onClick={() => loadPreset(preset)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        className="px-4 py-2 bg-gradient-to-r from-gray-600 to-indigo-600 text-white rounded-lg hover:bg-blue-700"
                         title="Apply Preset"
                       >
                         Apply
@@ -205,10 +205,11 @@ function loadPreset(preset: Preset) {
 
                     <button
                       onClick={() => deletePreset(preset.id, preset.name)}
-                      className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                     className="p-2 bg-red-400 text-white rounded-lg hover:bg-red-700"
+                      //className="p-1 rounded-lg hover:bg-red-500"
                       title="Delete Preset"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>

@@ -184,7 +184,7 @@ export default function Home() {
                       }}
                     />
                     <button
-                      className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition-all"
+                      className="px-8 py-4 bg-gradient-to-r from-gray-600 to-indigo-600 text-white rounded-xl  disabled:opacity-40 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition-all"
                       onClick={translatePrompt}
                       disabled={loading || !prompt.trim()}
                     >

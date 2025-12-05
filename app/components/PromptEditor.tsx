@@ -478,7 +478,7 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
       <div className="mb-6">
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-indigo-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
         >
           <span>{showAdvanced ? "▼" : "▶"}</span>
           <span>Advanced Options</span>
