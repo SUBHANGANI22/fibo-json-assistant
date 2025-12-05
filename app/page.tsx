@@ -95,27 +95,33 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-pink-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 p-8 text-white">
-            <h1 className="text-5xl font-bold mb-2">🎨 FIBO JSON Assistant</h1>
-            <p className="text-purple-100 text-lg">
-              Professional image generation with structured JSON control
-            </p>
-            <div className="mt-4 flex items-center gap-2 text-sm flex-wrap">
-              <span className="bg-white/20 px-3 py-1 rounded-full">
-                ✅ Bria API Connected
-              </span>
-              <span className="bg-white/20 px-3 py-1 rounded-full">
-                💾 Style Presets
-              </span>
-              <span className="bg-white/20 px-3 py-1 rounded-full">
-                🔄 Batch Generation
-              </span>
-              <span className="bg-white/20 px-3 py-1 rounded-full">
-                🔒 100% Licensed Data
-              </span>
-            </div>
-          </div>
+      <div className="bg-white rounded-3xl shadow-2xl overflow-hidden mb-6">
+      <div className="bg-gradient-to-r from-gray-900 via-indigo-800 to-violet-700 p-8 text-white rounded-2xl shadow-lg">
+      <h1 className="text-5xl font-bold mb-2">🎨 FIBO JSON Assistant</h1>
+
+      <p className="text-indigo-100 text-lg">
+        Professional image generation with structured JSON control
+      </p>
+
+      <div className="mt-4 flex items-center gap-2 text-sm flex-wrap">
+        <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
+          ✅ Bria API Connected
+        </span>
+
+        <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
+          💾 Style Presets
+        </span>
+
+        <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
+          🔄 Batch Generation
+        </span>
+
+        <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
+          🔒 100% Licensed Data
+        </span>
+      </div>
+    </div>
+
 
           <div className="p-8">
             {/* Status Message */}
@@ -138,17 +144,17 @@ export default function Home() {
                 onClick={() => setActiveTab("single")}
                 className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all ${
                   activeTab === "single"
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
+                    ? "bg-gradient-to-r from-gray-900 via-indigo-800 to-violet-700 p-8 text-white rounded-2xl shadow-lg"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                 }`}
               >
-                🎨 Single Generation
+                ✨ Single Generation
               </button>
               <button
                 onClick={() => setActiveTab("batch")}
                 className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all ${
                   activeTab === "batch"
-                    ? "bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg"
+                    ? "bg-gradient-to-r from-gray-900 via-indigo-800 to-violet-700 p-8 text-white rounded-2xl shadow-lg"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                 }`}
               >
