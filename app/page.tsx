@@ -1,8 +1,11 @@
+
+
 // "use client";
 // import { useState, useEffect } from "react";
 // import PromptEditor from "./components/PromptEditor";
 // import PresetManager from "./components/PresetManager";
 // import BatchGenerator from "./components/BatchGenerator";
+// import ImageHistorySidebar from "./components/ImageHistorySidebar";
 
 // export default function Home() {
 //   const [prompt, setPrompt] = useState("");
@@ -12,6 +15,8 @@
 //   const [error, setError] = useState("");
 //   const [statusMessage, setStatusMessage] = useState("");
 //   const [activeTab, setActiveTab] = useState<"single" | "batch">("single");
+//   const [isGenerating, setIsGenerating] = useState(false);
+//   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
 //   // Parse current JSON config
 //   const getCurrentConfig = () => {
@@ -21,6 +26,7 @@
 //       return {};
 //     }
 //   };
+  
 
 //   // Load preset into editor
 //   const handleLoadPreset = (config: any) => {
@@ -246,12 +252,11 @@
 //                 )}
 //               </>
 //             )}
-
 //             {/* Batch Generation Tab */}
 //             {activeTab === "batch" && (
 //               <>
 //                 {/* Show current style settings */}
-//                 <div className="mb-6 p-4 bg-purple-50 border-l-4 border-purple-500 rounded-lg">
+//                 {/* <div className="mb-6 p-4 bg-purple-50 border-l-4 border-purple-500 rounded-lg">
 //                   <p className="text-sm text-purple-900 font-semibold mb-2">
 //                     📋 Current Style Configuration:
 //                   </p>
@@ -274,7 +279,7 @@
 //                       </span>
 //                     )}
 //                   </div>
-//                 </div>
+//                 </div> */}
 
 //                 <BatchGenerator currentConfig={getCurrentConfig()} />
 //               </>
@@ -286,6 +291,7 @@
 //         <PresetManager
 //           currentConfig={getCurrentConfig()}
 //           onLoadPreset={handleLoadPreset}
+//           quickStartPrompt={prompt}
 //         />
 
 //         {/* Info Footer */}
@@ -301,10 +307,11 @@
 
 
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import PromptEditor from "./components/PromptEditor";
 import PresetManager from "./components/PresetManager";
 import BatchGenerator from "./components/BatchGenerator";
+import ImageHistorySidebar from "./components/ImageHistorySidebar";
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
@@ -314,6 +321,10 @@ export default function Home() {
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [activeTab, setActiveTab] = useState<"single" | "batch">("single");
+  const [currentSeed, setCurrentSeed] = useState<number | null>(null);
+  
+  // Reference to ImageHistorySidebar's addToHistory function
+  const addToHistoryRef = useRef<((imageUrl: string, config: any, seed?: number) => void) | null>(null);
 
   // Parse current JSON config
   const getCurrentConfig = () => {
@@ -323,14 +334,51 @@ export default function Home() {
       return {};
     }
   };
-  
 
   // Load preset into editor
   const handleLoadPreset = (config: any) => {
     setJsonInput(JSON.stringify(config, null, 2));
-    if (config.prompt) {
-      setPrompt(config.prompt);
+    if (config.short_description) {
+      setPrompt(config.short_description);
     }
+  };
+
+  // Load config from history
+  const handleLoadConfig = (config: any) => {
+    setJsonInput(JSON.stringify(config, null, 2));
+    if (config.short_description) {
+      setPrompt(config.short_description);
+    }
+    setActiveTab("single");
+  };
+
+  // Regenerate with exact seed
+  const handleRegenerateExact = async (config: any, seed: number) => {
+    setJsonInput(JSON.stringify(config, null, 2));
+    if (config.short_description) {
+      setPrompt(config.short_description);
+    }
+    setActiveTab("single");
+    setCurrentSeed(seed);
+    
+    // Trigger generation after state updates
+    setTimeout(() => {
+      generateWithSeed(config, seed);
+    }, 100);
+  };
+
+  // Regenerate with new variation
+  const handleRegenerateVariation = async (config: any) => {
+    setJsonInput(JSON.stringify(config, null, 2));
+    if (config.short_description) {
+      setPrompt(config.short_description);
+    }
+    setActiveTab("single");
+    
+    // Generate with new random seed
+    setTimeout(() => {
+      generate();
+    }, 100);
   };
 
   async function translatePrompt() {
@@ -362,19 +410,22 @@ export default function Home() {
     }
   }
 
-  async function generate() {
+  async function generateWithSeed(config: any, seed: number) {
     setError("");
     setImg(null);
-    setStatusMessage("Starting FIBO generation...");
+    setStatusMessage("Starting FIBO generation with seed...");
     setLoading(true);
 
     try {
-      const parsedJSON = JSON.parse(jsonInput);
+      const configWithSeed = {
+        ...config,
+        seed: seed
+      };
 
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsedJSON),
+        body: JSON.stringify(configWithSeed),
       });
 
       if (!res.ok) {
@@ -384,7 +435,14 @@ export default function Home() {
 
       setStatusMessage("✅ Image generated!");
       const blob = await res.blob();
-      setImg(URL.createObjectURL(blob));
+      const imageUrl = URL.createObjectURL(blob);
+      setImg(imageUrl);
+      setCurrentSeed(seed);
+
+      // Add to history
+      if (addToHistoryRef.current) {
+        addToHistoryRef.current(imageUrl, configWithSeed, seed);
+      }
     } catch (err: any) {
       setError(err.message);
       console.error("Generation error:", err);
@@ -394,37 +452,92 @@ export default function Home() {
     }
   }
 
+  async function generate() {
+    setError("");
+    setImg(null);
+    setStatusMessage("Starting FIBO generation...");
+    setLoading(true);
+
+    try {
+      const parsedJSON = JSON.parse(jsonInput);
+      
+      // Generate random seed if not provided
+      const MAX_SEED = 2147483647;
+      const seed = currentSeed || Math.floor(Math.random() * MAX_SEED);
+      
+      const configWithSeed = {
+        ...parsedJSON,
+        seed: seed
+      };
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(configWithSeed),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Generation failed");
+      }
+
+      setStatusMessage("✅ Image generated!");
+      const blob = await res.blob();
+      const imageUrl = URL.createObjectURL(blob);
+      setImg(imageUrl);
+      setCurrentSeed(seed);
+
+      // Add to history
+      if (addToHistoryRef.current) {
+        addToHistoryRef.current(imageUrl, configWithSeed, seed);
+      }
+    } catch (err: any) {
+      setError(err.message);
+      console.error("Generation error:", err);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setStatusMessage(""), 3000);
+      setCurrentSeed(null); // Reset seed for next generation
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-pink-50 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Image History Sidebar */}
+        <ImageHistorySidebar
+          onRegenerateExact={handleRegenerateExact}
+          onRegenerateVariation={handleRegenerateVariation}
+          onLoadConfig={handleLoadConfig}
+          addToHistoryRef={addToHistoryRef}
+        />
+
         {/* Header */}
-      <div className="bg-white rounded-3xl shadow-2xl overflow-hidden mb-6">
-      <div className="bg-gradient-to-r from-gray-900 via-indigo-800 to-violet-700 p-8 text-white rounded-2xl shadow-lg">
-      <h1 className="text-5xl font-bold mb-2">🎨 FIBO JSON Assistant</h1>
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-gray-900 via-indigo-800 to-violet-700 p-8 text-white rounded-2xl shadow-lg">
+            <h1 className="text-5xl font-bold mb-2">🎨 FIBO JSON Assistant</h1>
+            <p className="text-indigo-100 text-lg">
+              Professional image generation with structured JSON control
+            </p>
 
-      <p className="text-indigo-100 text-lg">
-        Professional image generation with structured JSON control
-      </p>
-
-      <div className="mt-4 flex items-center gap-2 text-sm flex-wrap">
-        <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
-          ✅ Bria API Connected
-        </span>
-
-        <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
-          💾 Style Presets
-        </span>
-
-        <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
-          🔄 Batch Generation
-        </span>
-
-        <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
-          🔒 100% Licensed Data
-        </span>
-      </div>
-    </div>
-
+            <div className="mt-4 flex items-center gap-2 text-sm flex-wrap">
+              <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
+                ✅ Bria API Connected
+              </span>
+              <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
+                💾 Style Presets
+              </span>
+              <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
+                🔄 Batch Generation
+              </span>
+              <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
+                📜 Generation History
+              </span>
+              <span className="bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/10">
+                🔒 100% Licensed Data
+              </span>
+            </div>
+          </div>
 
           <div className="p-8">
             {/* Status Message */}
@@ -447,7 +560,7 @@ export default function Home() {
                 onClick={() => setActiveTab("single")}
                 className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all ${
                   activeTab === "single"
-                    ? "bg-gradient-to-r from-gray-900 via-indigo-800 to-violet-700 p-8 text-white rounded-2xl shadow-lg"
+                    ? "bg-gradient-to-r from-gray-900 via-indigo-800 to-violet-700 text-white shadow-lg"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                 }`}
               >
@@ -457,7 +570,7 @@ export default function Home() {
                 onClick={() => setActiveTab("batch")}
                 className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all ${
                   activeTab === "batch"
-                    ? "bg-gradient-to-r from-gray-900 via-indigo-800 to-violet-700 p-8 text-white rounded-2xl shadow-lg"
+                    ? "bg-gradient-to-r from-gray-900 via-indigo-800 to-violet-700 text-white shadow-lg"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                 }`}
               >
@@ -487,7 +600,7 @@ export default function Home() {
                       }}
                     />
                     <button
-                      className="px-8 py-4 bg-gradient-to-r from-gray-600 to-indigo-600 text-white rounded-xl  disabled:opacity-40 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition-all"
+                      className="px-8 py-4 bg-gradient-to-r from-gray-600 to-indigo-600 text-white rounded-xl disabled:opacity-40 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition-all"
                       onClick={translatePrompt}
                       disabled={loading || !prompt.trim()}
                     >
@@ -515,8 +628,13 @@ export default function Home() {
                 {/* Image Display */}
                 {img && (
                   <div className="mt-10">
-                    <h3 className="text-2xl font-bold mb-4 text-gray-800">
+                    <h3 className="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
                       ✨ Generated Result
+                      {currentSeed && (
+                        <span className="text-sm font-normal text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                          Seed: {currentSeed}
+                        </span>
+                      )}
                     </h3>
                     <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-gray-200">
                       <img src={img} alt="Generated" className="w-full" />
@@ -531,7 +649,8 @@ export default function Home() {
                       </a>
                       <button
                         onClick={() => {
-                          const blob = new Blob([jsonInput], {
+                          const config = getCurrentConfig();
+                          const blob = new Blob([JSON.stringify(config, null, 2)], {
                             type: "application/json",
                           });
                           const url = URL.createObjectURL(blob);
@@ -544,47 +663,28 @@ export default function Home() {
                       >
                         📄 Download JSON
                       </button>
+                      {currentSeed && (
+                        <button
+                          onClick={() => generateWithSeed(getCurrentConfig(), currentSeed)}
+                          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+                        >
+                          🔄 Regenerate Exact
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
               </>
             )}
+
             {/* Batch Generation Tab */}
             {activeTab === "batch" && (
-              <>
-                {/* Show current style settings */}
-                {/* <div className="mb-6 p-4 bg-purple-50 border-l-4 border-purple-500 rounded-lg">
-                  <p className="text-sm text-purple-900 font-semibold mb-2">
-                    📋 Current Style Configuration:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {jsonInput ? (
-                      <>
-                        <span className="text-xs bg-white px-3 py-1 rounded-full border border-purple-300">
-                          Camera: {getCurrentConfig().camera?.angle || "N/A"}
-                        </span>
-                        <span className="text-xs bg-white px-3 py-1 rounded-full border border-purple-300">
-                          Lighting: {getCurrentConfig().lighting?.style || "N/A"}
-                        </span>
-                        <span className="text-xs bg-white px-3 py-1 rounded-full border border-purple-300">
-                          Palette: {getCurrentConfig().colors?.palette || "N/A"}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-purple-700">
-                        Configure your style in the "Single Generation" tab first
-                      </span>
-                    )}
-                  </div>
-                </div> */}
-
-                <BatchGenerator currentConfig={getCurrentConfig()} />
-              </>
+              <BatchGenerator currentConfig={getCurrentConfig()} />
             )}
           </div>
         </div>
 
-        {/* Preset Manager - Always visible */}
+        {/* Preset Manager */}
         <PresetManager
           currentConfig={getCurrentConfig()}
           onLoadPreset={handleLoadPreset}
