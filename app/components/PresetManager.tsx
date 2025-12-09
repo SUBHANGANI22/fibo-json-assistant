@@ -31,18 +31,15 @@ export default function PresetManager({
   const [appliedPresetConfig, setAppliedPresetConfig] = useState<any>(null);
   const [isModified, setIsModified] = useState(false);
 
-  // Toast init
   useEffect(() => {
     initializeToast(messageApi);
   }, [messageApi]);
 
-  // Compare JSON to determine modification
   function isConfigModified(): boolean {
     if (!appliedPresetConfig) return true;
     return JSON.stringify(currentConfig) !== JSON.stringify(appliedPresetConfig);
   }
 
-  // Whenever currentConfig changes → detect modifications
   useEffect(() => {
     setIsModified(isConfigModified());
   }, [currentConfig]);
@@ -53,7 +50,6 @@ export default function PresetManager({
     return startPrompt.length > 0 || mainPrompt.length > 0;
   }
 
-  // Load presets from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("fibo-presets");
@@ -68,7 +64,6 @@ export default function PresetManager({
     }
   }, []);
 
-  // Save new preset
   function savePreset() {
     if (!validatePrompts()) {
       toast.error("Please enter at least one prompt");
@@ -95,7 +90,6 @@ export default function PresetManager({
     setShowSaveDialog(false);
   }
 
-  // Update existing preset
   function updatePreset() {
     if (!appliedPresetId) return;
 
@@ -105,15 +99,12 @@ export default function PresetManager({
 
     setPresets(updated);
     localStorage.setItem("fibo-presets", JSON.stringify(updated));
-
-    // Reset modified state
     setAppliedPresetConfig(currentConfig);
     setIsModified(false);
 
     toast.success("Preset updated successfully");
   }
 
-  // Load a preset
   function loadPreset(preset: Preset) {
     onLoadPreset(preset.config);
 
@@ -124,7 +115,6 @@ export default function PresetManager({
     toast.success(`"${preset.name}" applied`);
   }
 
-  // Delete preset
   function deletePreset(id: string, name: string) {
     Modal.confirm({
       title: "Delete Preset",
@@ -158,8 +148,6 @@ export default function PresetManager({
 
       <div className="bg-white rounded-xl p-6 shadow-lg border">
         <h2 className="text-2xl font-bold mb-4">💾 FIBO Style Presets</h2>
-
-        {/* Save New Preset Button */}
         <button
           onClick={() => setShowSaveDialog(true)}
           disabled={!isModified}
@@ -173,8 +161,6 @@ export default function PresetManager({
           <Save className="w-5 h-5" />
           Save as New Preset
         </button>
-
-        {/* Update Existing Preset */}
         {appliedPresetId && (
           <button
             onClick={updatePreset}
@@ -189,8 +175,6 @@ export default function PresetManager({
             Update This Preset
           </button>
         )}
-
-        {/* Save dialog */}
         {showSaveDialog && (
           <div className="mb-4 p-4 bg-purple-50 border-2 border-purple-300 rounded-lg">
             <label className="block mb-2 font-semibold text-purple-900">

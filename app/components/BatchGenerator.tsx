@@ -48,16 +48,14 @@ export default function BatchGenerator({ currentConfig, onAddToHistory }: Props)
       setProgress({ current: i + 1, total: promptList.length });
 
       try {
-        // Generate unique seed for each image
         const seed = Math.floor(Math.random() * MAX_SEED);
         
         const config = {
           ...currentConfig,
-          short_description: prompt, // Use the batch prompt as the main description
-          seed: seed, // Add seed for reproducibility
+          short_description: prompt, 
+          seed: seed,
         };
 
-        // Call generate API
         const res = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -82,13 +80,10 @@ export default function BatchGenerator({ currentConfig, onAddToHistory }: Props)
         };
 
         results.push(newImage);
-
-        // Add to history sidebar
         if (onAddToHistory) {
           onAddToHistory(imageUrl, config, seed);
         }
 
-        // Update state incrementally so user sees progress
         setGeneratedImages([...results]);
       } catch (error) {
         console.error(`Error generating image for "${prompt}":`, error);
@@ -101,13 +96,11 @@ export default function BatchGenerator({ currentConfig, onAddToHistory }: Props)
 
   function downloadAll() {
     generatedImages.forEach((img, index) => {
-      // Download image
       const link = document.createElement("a");
       link.href = img.imageUrl;
       link.download = `fibo-${index + 1}-${img.prompt.substring(0, 30).replace(/[^a-z0-9]/gi, "-")}.png`;
       link.click();
 
-      // Download JSON
       const jsonBlob = new Blob([JSON.stringify(img.json, null, 2)], {
         type: "application/json",
       });
@@ -127,7 +120,6 @@ export default function BatchGenerator({ currentConfig, onAddToHistory }: Props)
     setPrompts("");
   }
 
-  // Get display info from FIBO config
   function getConfigSummary(config: any) {
     return {
       style: config?.artistic_style || "N/A",

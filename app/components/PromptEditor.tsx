@@ -36,8 +36,6 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
   
   // Advanced Options
   const [showAdvanced, setShowAdvanced] = useState(false);
-
-  // Use ref to track if we're updating from external JSON to prevent circular updates
   const isExternalUpdate = useRef(false);
   const lastExternalJson = useRef("");
 const [errors, setErrors] = useState<{backgroundSetting?: string; context?: string}>({});
@@ -55,17 +53,13 @@ const [errors, setErrors] = useState<{backgroundSetting?: string; context?: stri
     
     setErrors(newErrors);
     const isValid = Object.keys(newErrors).length === 0;
-    
-    // Notify parent component
     if (onValidate) {
       onValidate(isValid);
     }
     
     return isValid;
   };
-  // Generate FIBO-compliant JSON from UI state
   useEffect(() => {
-    // Skip if this update came from parsing external JSON
     if (isExternalUpdate.current) {
       isExternalUpdate.current = false;
       return;
@@ -108,9 +102,7 @@ const [errors, setErrors] = useState<{backgroundSetting?: string; context?: stri
     setJsonInput
   ]);
 
-  // Parse external JSON changes into UI (only when JSON actually changes from outside)
   useEffect(() => {
-    // Skip if this is the same JSON we just set
     if (jsonInput === lastExternalJson.current) {
       return;
     }
@@ -118,19 +110,13 @@ const [errors, setErrors] = useState<{backgroundSetting?: string; context?: stri
     try {
       if (jsonInput.trim()) {
         const configFromInput = JSON.parse(jsonInput);
-        
-        // Mark that we're doing an external update
         isExternalUpdate.current = true;
         lastExternalJson.current = jsonInput;
-
-        // Update all states
         setShortDescription(configFromInput.short_description || "");
         setStyleMedium(configFromInput.style_medium || "photograph");
         setArtisticStyle(configFromInput.artistic_style || "photorealistic");
         setBackgroundSetting(configFromInput.background_setting || "");
         setContext(configFromInput.context || "");
-        
-        // Aesthetics
         if (configFromInput.aesthetics) {
           setAestheticScore(configFromInput.aesthetics.aesthetic_score || "high");
           setColorScheme(configFromInput.aesthetics.color_scheme || "natural colors");
@@ -138,15 +124,11 @@ const [errors, setErrors] = useState<{backgroundSetting?: string; context?: stri
           setMoodAtmosphere(configFromInput.aesthetics.mood_atmosphere || "professional");
           setPreferenceScore(configFromInput.aesthetics.preference_score || "high");
         }
-        
-        // Lighting
         if (configFromInput.lighting) {
           setLightingConditions(configFromInput.lighting.conditions || "natural daylight");
           setLightingDirection(configFromInput.lighting.direction || "soft, diffused lighting from multiple sources");
           setShadows(configFromInput.lighting.shadows || "soft shadows");
         }
-        
-        // Photographic Characteristics
         if (configFromInput.photographic_characteristics) {
           setCameraAngle(configFromInput.photographic_characteristics.camera_angle || "eye-level");
           setDepthOfField(configFromInput.photographic_characteristics.depth_of_field || "medium");

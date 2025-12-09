@@ -6,7 +6,6 @@ const BRIA_API_BASE = "https://engine.prod.bria-api.com/v2";
 function convertFiboToPrompt(fiboJSON: any): string {
   const parts: string[] = [];
 
-  // Start with artistic style and medium (like "A photorealistic, high-resolution rendering")
   const stylePrefix: string[] = [];
   if (fiboJSON.artistic_style) {
     stylePrefix.push(fiboJSON.artistic_style);
@@ -14,8 +13,6 @@ function convertFiboToPrompt(fiboJSON: any): string {
   if (fiboJSON.style_medium) {
     stylePrefix.push(fiboJSON.style_medium);
   }
-  
-  // Main description
   if (fiboJSON.short_description) {
     if (stylePrefix.length > 0) {
       parts.push(`A ${stylePrefix.join(", ")} of ${fiboJSON.short_description.toLowerCase()}`);
@@ -24,7 +21,6 @@ function convertFiboToPrompt(fiboJSON: any): string {
     }
   }
 
-  // Add photographic characteristics
   if (fiboJSON.photographic_characteristics) {
     const pc = fiboJSON.photographic_characteristics;
     const photoDetails: string[] = [];
@@ -39,7 +35,6 @@ function convertFiboToPrompt(fiboJSON: any): string {
     }
   }
 
-  // Add lighting details (very important for image quality)
   if (fiboJSON.lighting) {
     const l = fiboJSON.lighting;
     const lightingDetails: string[] = [];
@@ -53,7 +48,6 @@ function convertFiboToPrompt(fiboJSON: any): string {
     }
   }
 
-  // Add aesthetic details
   if (fiboJSON.aesthetics) {
     const a = fiboJSON.aesthetics;
     const aestheticDetails: string[] = [];
@@ -65,8 +59,7 @@ function convertFiboToPrompt(fiboJSON: any): string {
     if (aestheticDetails.length > 0) {
       parts.push(`The composition features ${aestheticDetails.join(", ")}`);
     }
-    
-    // Add quality indicators
+
     const qualityIndicators: string[] = [];
     if (a.aesthetic_score && a.aesthetic_score !== "medium") {
       qualityIndicators.push(`${a.aesthetic_score} aesthetic quality`);
@@ -79,17 +72,14 @@ function convertFiboToPrompt(fiboJSON: any): string {
     }
   }
 
-  // Add background setting
   if (fiboJSON.background_setting) {
     parts.push(`Background: ${fiboJSON.background_setting}`);
   }
 
-  // Add context
   if (fiboJSON.context) {
     parts.push(`Context: ${fiboJSON.context}`);
   }
 
-  // Join all parts with proper punctuation
   const finalPrompt = parts
     .filter(p => p && p.trim().length > 0)
     .join(". ")
@@ -104,7 +94,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Validate input
     if (!body.short_description && !body.prompt) {
       return NextResponse.json(
         { error: "short_description or prompt is required in JSON" },
@@ -156,19 +145,16 @@ export async function POST(req: Request) {
     console.log("\n🚀 Sending to BRIA API...");
     console.log("=".repeat(80) + "\n");
 
-    // Prepare request body with optional seed
     const requestBody: any = {
       prompt: textPrompt,
-      sync: false, // Async mode
+      sync: false, 
     };
     
-    // Add seed if provided (for exact regeneration)
     if (body.seed) {
       requestBody.seed = body.seed;
       console.log(`🎲 Using seed: ${body.seed}`);
     }
 
-    // Step 1: Initiate generation
     const generateResponse = await fetch(`${BRIA_API_BASE}/image/generate`, {
       method: "POST",
       headers: {
@@ -202,7 +188,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Step 2: Poll for completion
     let attempts = 0;
     const maxAttempts = 60;
     let imageUrl = null;
@@ -226,7 +211,6 @@ export async function POST(req: Request) {
 
       const statusData = await statusResponse.json();
 
-      // Check if completed
       if (statusData.status === "COMPLETED") {
         imageUrl = statusData.result?.image_url || statusData.result?.urls?.[0] || statusData.image_url;
         
@@ -260,7 +244,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Step 3: Fetch the actual image
     console.log("📥 Fetching image from URL...");
     const imageResponse = await fetch(imageUrl);
     

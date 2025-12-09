@@ -26,7 +26,6 @@ export default function ImageHistorySidebar({
   const [history, setHistory] = useState<HistoryImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<HistoryImage | null>(null);
 
-  // Load history from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('fibo-history');
     if (saved) {
@@ -38,7 +37,6 @@ export default function ImageHistorySidebar({
     }
   }, []);
 
-  // ✅ FIX: Use useCallback with functional state update to handle rapid batch additions
   const addToHistory = useCallback((imageUrl: string, config: any, seed?: number) => {
     const MAX_SEED = 2147483647;
     const validSeed = seed && seed <= MAX_SEED 
@@ -46,22 +44,20 @@ export default function ImageHistorySidebar({
       : Math.floor(Math.random() * MAX_SEED);
     
     const newEntry: HistoryImage = {
-      id: Date.now().toString() + Math.random(), // Add random to ensure uniqueness in batch
+      id: Date.now().toString() + Math.random(), 
       imageUrl,
       config,
       seed: validSeed,
       timestamp: new Date().toISOString(),
     };
 
-    // ✅ FIX: Use functional state update to avoid stale closure issues
     setHistory(prevHistory => {
-      const updated = [newEntry, ...prevHistory].slice(0, 50); // Keep last 50
+      const updated = [newEntry, ...prevHistory].slice(0, 50); 
       localStorage.setItem('fibo-history', JSON.stringify(updated));
       return updated;
     });
-  }, []); // Empty dependency array since we use functional updates
+  }, []); 
 
-  // Expose addToHistory to parent via ref
   useEffect(() => {
     addToHistoryRef.current = addToHistory;
   }, [addToHistory, addToHistoryRef]);
@@ -98,7 +94,6 @@ export default function ImageHistorySidebar({
 
   return (
     <>
-      {/* Toggle Button - Fixed position */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed top-4 right-4 z-50 p-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all hover:scale-110"
@@ -111,8 +106,6 @@ export default function ImageHistorySidebar({
           </span>
         )}
       </button>
-
-      {/* Sidebar */}
       <div
         className={`fixed top-0 right-0 h-full w-96 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-40 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'

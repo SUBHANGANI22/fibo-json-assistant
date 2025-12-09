@@ -15,11 +15,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"single" | "batch">("single");
   const [currentSeed, setCurrentSeed] = useState<number | null>(null);
   const [isFormValid, setIsFormValid] = useState(true);
-  
-  // Reference to ImageHistorySidebar's addToHistory function
+ 
   const addToHistoryRef = useRef<((imageUrl: string, config: any, seed?: number) => void) | null>(null);
 
-  // Parse current JSON config
   const getCurrentConfig = () => {
     try {
       return JSON.parse(jsonInput || "{}");
@@ -28,7 +26,6 @@ export default function Home() {
     }
   };
 
-  // Load preset into editor
   const handleLoadPreset = (config: any) => {
     setJsonInput(JSON.stringify(config, null, 2));
     if (config.short_description) {
@@ -36,7 +33,6 @@ export default function Home() {
     }
   };
 
-  // Load config from history
   const handleLoadConfig = (config: any) => {
     setJsonInput(JSON.stringify(config, null, 2));
     if (config.short_description) {
@@ -45,7 +41,6 @@ export default function Home() {
     setActiveTab("single");
   };
 
-  // Regenerate with exact seed
   const handleRegenerateExact = async (config: any, seed: number) => {
     setJsonInput(JSON.stringify(config, null, 2));
     if (config.short_description) {
@@ -53,22 +48,19 @@ export default function Home() {
     }
     setActiveTab("single");
     setCurrentSeed(seed);
-    
-    // Trigger generation after state updates
+ 
     setTimeout(() => {
       generateWithSeed(config, seed);
     }, 100);
   };
 
-  // Regenerate with new variation
   const handleRegenerateVariation = async (config: any) => {
     setJsonInput(JSON.stringify(config, null, 2));
     if (config.short_description) {
       setPrompt(config.short_description);
     }
     setActiveTab("single");
-    
-    // Generate with new random seed
+  
     setTimeout(() => {
       generate();
     }, 100);
@@ -132,7 +124,6 @@ export default function Home() {
       setImg(imageUrl);
       setCurrentSeed(seed);
 
-      // Add to history
       if (addToHistoryRef.current) {
         addToHistoryRef.current(imageUrl, configWithSeed, seed);
       }
@@ -146,7 +137,6 @@ export default function Home() {
   }
 
   async function generate() {
-    // Validate form before generating
     if (!isFormValid) {
       setError("Please fill in all required fields (Background Setting and Context)");
       setTimeout(() => setError(""), 5000);
@@ -160,8 +150,7 @@ export default function Home() {
 
     try {
       const parsedJSON = JSON.parse(jsonInput);
-      
-      // Generate random seed if not provided
+    
       const MAX_SEED = 2147483647;
       const seed = currentSeed || Math.floor(Math.random() * MAX_SEED);
       
@@ -187,7 +176,6 @@ export default function Home() {
       setImg(imageUrl);
       setCurrentSeed(seed);
 
-      // Add to history
       if (addToHistoryRef.current) {
         addToHistoryRef.current(imageUrl, configWithSeed, seed);
       }
@@ -197,7 +185,7 @@ export default function Home() {
     } finally {
       setLoading(false);
       setTimeout(() => setStatusMessage(""), 3000);
-      setCurrentSeed(null); // Reset seed for next generation
+      setCurrentSeed(null); 
     }
   }
 
@@ -253,8 +241,7 @@ export default function Home() {
                 <strong>⚠️ Error:</strong> {error}
               </div>
             )}
-
-            {/* Tab Switcher */}
+            {/* Tab Buttons */}
             <div className="mb-4 sm:mb-6 flex gap-2">
               <button
                 onClick={() => setActiveTab("single")}
