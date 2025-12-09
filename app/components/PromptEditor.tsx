@@ -334,7 +334,6 @@ const [errors, setErrors] = useState<{backgroundSetting?: string; context?: stri
             <h3 className="font-bold text-yellow-600 flex items-center gap-2 text-sm sm:text-base">
               💡 Lighting
             </h3>
-            
             <div>
               <label className="block mb-2 text-xs sm:text-sm font-semibold">Conditions</label>
               <select

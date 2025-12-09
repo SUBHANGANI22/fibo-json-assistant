@@ -114,7 +114,6 @@ export default function PresetManager({
 
     toast.success(`"${preset.name}" applied`);
   }
-
   function deletePreset(id: string, name: string) {
     Modal.confirm({
       title: "Delete Preset",
@@ -148,6 +147,8 @@ export default function PresetManager({
 
       <div className="bg-white rounded-xl p-6 shadow-lg border">
         <h2 className="text-2xl font-bold mb-4">💾 FIBO Style Presets</h2>
+
+        {/* Save New Preset Button */}
         <button
           onClick={() => setShowSaveDialog(true)}
           disabled={!isModified}
@@ -161,6 +162,8 @@ export default function PresetManager({
           <Save className="w-5 h-5" />
           Save as New Preset
         </button>
+
+        {/* Update Existing Preset */}
         {appliedPresetId && (
           <button
             onClick={updatePreset}
@@ -175,6 +178,8 @@ export default function PresetManager({
             Update This Preset
           </button>
         )}
+
+        {/* Save dialog */}
         {showSaveDialog && (
           <div className="mb-4 p-4 bg-purple-50 border-2 border-purple-300 rounded-lg">
             <label className="block mb-2 font-semibold text-purple-900">
