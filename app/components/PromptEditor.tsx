@@ -1,19 +1,20 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface Props {
   jsonInput: string;
   setJsonInput: (val: string) => void;
   initialPrompt?: string;
+   onValidate?: (isValid: boolean) => void;
 }
 
-export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = "" }: Props) {
+export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = "",onValidate }: Props) {
   // Core FIBO fields
   const [shortDescription, setShortDescription] = useState(initialPrompt);
   const [styleMedium, setStyleMedium] = useState("photograph");
   const [artisticStyle, setArtisticStyle] = useState("photorealistic");
-  const [backgroundSetting, setBackgroundSetting] = useState("natural environment");
-  const [context, setContext] = useState("professional photography");
+  const [backgroundSetting, setBackgroundSetting] = useState("");
+  const [context, setContext] = useState("");
   
   // Aesthetics
   const [aestheticScore, setAestheticScore] = useState("high");
@@ -36,45 +37,42 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
   // Advanced Options
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Parse FIBO JSON into UI state
-  function applyFiboConfig(config: any) {
-    if (config && Object.keys(config).length > 0) {
-      setShortDescription(config.short_description || initialPrompt);
-      setStyleMedium(config.style_medium || "photograph");
-      setArtisticStyle(config.artistic_style || "photorealistic");
-      setBackgroundSetting(config.background_setting || "natural environment");
-      setContext(config.context || "professional photography");
-      
-      // Aesthetics
-      if (config.aesthetics) {
-        setAestheticScore(config.aesthetics.aesthetic_score || "high");
-        setColorScheme(config.aesthetics.color_scheme || "natural colors");
-        setComposition(config.aesthetics.composition || "rule of thirds");
-        setMoodAtmosphere(config.aesthetics.mood_atmosphere || "professional");
-        setPreferenceScore(config.aesthetics.preference_score || "high");
-      }
-      
-      // Lighting
-      if (config.lighting) {
-        setLightingConditions(config.lighting.conditions || "natural daylight");
-        setLightingDirection(config.lighting.direction || "soft, diffused lighting from multiple sources");
-        setShadows(config.lighting.shadows || "soft shadows");
-      }
-      
-      // Photographic Characteristics
-      if (config.photographic_characteristics) {
-        setCameraAngle(config.photographic_characteristics.camera_angle || "eye-level");
-        setDepthOfField(config.photographic_characteristics.depth_of_field || "medium");
-        setFocus(config.photographic_characteristics.focus || "sharp focus");
-        setLensFocalLength(config.photographic_characteristics.lens_focal_length || "standard lens (50mm)");
-      }
-    }
-  }
+  // Use ref to track if we're updating from external JSON to prevent circular updates
+  const isExternalUpdate = useRef(false);
+  const lastExternalJson = useRef("");
+const [errors, setErrors] = useState<{backgroundSetting?: string; context?: string}>({});
 
+ const validateFields = () => {
+    const newErrors: {backgroundSetting?: string; context?: string} = {};
+    
+    if (!backgroundSetting.trim()) {
+      newErrors.backgroundSetting = "Background setting is required";
+    }
+    
+    if (!context.trim()) {
+      newErrors.context = "Context is required";
+    }
+    
+    setErrors(newErrors);
+    const isValid = Object.keys(newErrors).length === 0;
+    
+    // Notify parent component
+    if (onValidate) {
+      onValidate(isValid);
+    }
+    
+    return isValid;
+  };
   // Generate FIBO-compliant JSON from UI state
-  function updateFiboJSON() {
+  useEffect(() => {
+    // Skip if this update came from parsing external JSON
+    if (isExternalUpdate.current) {
+      isExternalUpdate.current = false;
+      return;
+    }
+
     const fiboJSON: any = {
-      short_description: shortDescription || "",
+      short_description: shortDescription,
       style_medium: styleMedium,
       artistic_style: artisticStyle,
       aesthetics: {
@@ -100,51 +98,87 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
       objects: []
     };
 
-    setJsonInput(JSON.stringify(fiboJSON, null, 2));
-  }
-
-  // Update JSON whenever any field changes
-  useEffect(() => {
-    updateFiboJSON();
+    const newJson = JSON.stringify(fiboJSON, null, 2);
+    setJsonInput(newJson);
   }, [
     shortDescription, styleMedium, artisticStyle, backgroundSetting, context,
     aestheticScore, colorScheme, composition, moodAtmosphere, preferenceScore,
     lightingConditions, lightingDirection, shadows,
-    cameraAngle, depthOfField, focus, lensFocalLength
+    cameraAngle, depthOfField, focus, lensFocalLength,
+    setJsonInput
   ]);
 
-  // Parse external JSON changes into UI
+  // Parse external JSON changes into UI (only when JSON actually changes from outside)
   useEffect(() => {
+    // Skip if this is the same JSON we just set
+    if (jsonInput === lastExternalJson.current) {
+      return;
+    }
+
     try {
-      if (jsonInput.trim()) { 
+      if (jsonInput.trim()) {
         const configFromInput = JSON.parse(jsonInput);
-        applyFiboConfig(configFromInput);
+        
+        // Mark that we're doing an external update
+        isExternalUpdate.current = true;
+        lastExternalJson.current = jsonInput;
+
+        // Update all states
+        setShortDescription(configFromInput.short_description || "");
+        setStyleMedium(configFromInput.style_medium || "photograph");
+        setArtisticStyle(configFromInput.artistic_style || "photorealistic");
+        setBackgroundSetting(configFromInput.background_setting || "");
+        setContext(configFromInput.context || "");
+        
+        // Aesthetics
+        if (configFromInput.aesthetics) {
+          setAestheticScore(configFromInput.aesthetics.aesthetic_score || "high");
+          setColorScheme(configFromInput.aesthetics.color_scheme || "natural colors");
+          setComposition(configFromInput.aesthetics.composition || "rule of thirds");
+          setMoodAtmosphere(configFromInput.aesthetics.mood_atmosphere || "professional");
+          setPreferenceScore(configFromInput.aesthetics.preference_score || "high");
+        }
+        
+        // Lighting
+        if (configFromInput.lighting) {
+          setLightingConditions(configFromInput.lighting.conditions || "natural daylight");
+          setLightingDirection(configFromInput.lighting.direction || "soft, diffused lighting from multiple sources");
+          setShadows(configFromInput.lighting.shadows || "soft shadows");
+        }
+        
+        // Photographic Characteristics
+        if (configFromInput.photographic_characteristics) {
+          setCameraAngle(configFromInput.photographic_characteristics.camera_angle || "eye-level");
+          setDepthOfField(configFromInput.photographic_characteristics.depth_of_field || "medium");
+          setFocus(configFromInput.photographic_characteristics.focus || "sharp focus");
+          setLensFocalLength(configFromInput.photographic_characteristics.lens_focal_length || "standard lens (50mm)");
+        }
       }
     } catch (e) {
       console.error("Failed to parse JSON for editor state update:", e);
     }
-  }, [jsonInput]); 
+  }, [jsonInput]);
 
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6 border border-gray-200">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">
+    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 sm:p-6 mb-6 border border-gray-200">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">
         🎛️ FIBO Structured Prompt Builder
       </h2>
 
       {/* Info Banner */}
-      <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-800">
+      <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+        <p className="text-xs sm:text-sm text-blue-800">
           <strong>💡 How it works:</strong> Configure your image settings below. The structured JSON will be automatically converted into an optimized text prompt for BRIA's FIBO model. All fields are fully customizable with smart defaults.
         </p>
       </div>
 
       {/* Main Description */}
-      <div className="mb-6">
-        <label className="block mb-2 font-semibold text-gray-700">
+      <div className="mb-4 sm:mb-6">
+        <label className="block mb-2 font-semibold text-gray-700 text-sm sm:text-base">
           Main Description <span className="text-red-500">*</span>
         </label>
         <textarea
-          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none resize-none"
+          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-sm sm:text-base"
           value={shortDescription}
           onChange={(e) => setShortDescription(e.target.value)}
           placeholder="A detailed description of the image you want to generate..."
@@ -156,13 +190,13 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
       </div>
 
       {/* Core Style Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
         <div>
-          <label className="block mb-2 font-semibold text-gray-700">Style Medium</label>
+          <label className="block mb-2 font-semibold text-gray-700 text-sm sm:text-base">Style Medium</label>
           <select
             value={styleMedium}
             onChange={(e) => setStyleMedium(e.target.value)}
-            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-sm sm:text-base"
           >
             <option value="photograph">Photograph</option>
             <option value="digital art">Digital Art</option>
@@ -176,11 +210,11 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
         </div>
 
         <div>
-          <label className="block mb-2 font-semibold text-gray-700">Artistic Style</label>
+          <label className="block mb-2 font-semibold text-gray-700 text-sm sm:text-base">Artistic Style</label>
           <select
             value={artisticStyle}
             onChange={(e) => setArtisticStyle(e.target.value)}
-            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-sm sm:text-base"
           >
             <option value="photorealistic">Photorealistic</option>
             <option value="realistic">Realistic</option>
@@ -198,35 +232,35 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
       </div>
 
       {/* Context & Background */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
         <div>
-          <label className="block mb-2 font-semibold text-gray-700">Background Setting</label>
+          <label className="block mb-2 font-semibold text-gray-700 text-sm sm:text-base">Background Setting</label>
           <input
             type="text"
             value={backgroundSetting}
             onChange={(e) => setBackgroundSetting(e.target.value)}
-            placeholder="e.g., clean white background, urban street, mountain landscape"
-            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+            placeholder="e.g., clean white background, urban street"
+            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-sm sm:text-base"
           />
         </div>
 
         <div>
-          <label className="block mb-2 font-semibold text-gray-700">Context</label>
+          <label className="block mb-2 font-semibold text-gray-700 text-sm sm:text-base">Context</label>
           <input
             type="text"
             value={context}
             onChange={(e) => setContext(e.target.value)}
-            placeholder="e.g., product photography, lifestyle shot, graphic design asset"
-            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+            placeholder="e.g., product photography, lifestyle shot"
+            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-sm sm:text-base"
           />
         </div>
       </div>
 
       {/* Advanced Options Toggle */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-indigo-600 text-white rounded-lg hover:from-gray-700 hover:to-indigo-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-indigo-600 text-white rounded-lg hover:from-gray-700 hover:to-indigo-700 transition-colors text-sm sm:text-base"
         >
           <span>{showAdvanced ? "▼" : "▶"}</span>
           <span>Fine-Tune All FIBO Controls</span>
@@ -234,19 +268,19 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
       </div>
 
       {showAdvanced && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {/* Photographic Characteristics */}
           <div className="space-y-4 bg-white p-4 rounded-lg shadow-sm">
-            <h3 className="font-bold text-purple-600 flex items-center gap-2">
+            <h3 className="font-bold text-purple-600 flex items-center gap-2 text-sm sm:text-base">
               📷 Camera & Lens
             </h3>
             
             <div>
-              <label className="block mb-2 text-sm font-semibold">Camera Angle</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Camera Angle</label>
               <select
                 value={cameraAngle}
                 onChange={(e) => setCameraAngle(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="eye-level">Eye Level</option>
                 <option value="low angle">Low Angle</option>
@@ -262,11 +296,11 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-semibold">Lens Focal Length</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Lens Focal Length</label>
               <select
                 value={lensFocalLength}
                 onChange={(e) => setLensFocalLength(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="ultra wide-angle lens (14mm)">Ultra Wide 14mm</option>
                 <option value="wide-angle lens (24mm)">Wide 24mm</option>
@@ -284,11 +318,11 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-semibold">Depth of Field</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Depth of Field</label>
               <select
                 value={depthOfField}
                 onChange={(e) => setDepthOfField(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="shallow">Shallow (Blurred Background)</option>
                 <option value="medium">Medium</option>
@@ -298,11 +332,11 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-semibold">Focus</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Focus</label>
               <select
                 value={focus}
                 onChange={(e) => setFocus(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="sharp focus">Sharp Focus</option>
                 <option value="soft focus">Soft Focus</option>
@@ -315,16 +349,16 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
 
           {/* Lighting */}
           <div className="space-y-4 bg-white p-4 rounded-lg shadow-sm">
-            <h3 className="font-bold text-yellow-600 flex items-center gap-2">
+            <h3 className="font-bold text-yellow-600 flex items-center gap-2 text-sm sm:text-base">
               💡 Lighting
             </h3>
             
             <div>
-              <label className="block mb-2 text-sm font-semibold">Conditions</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Conditions</label>
               <select
                 value={lightingConditions}
                 onChange={(e) => setLightingConditions(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="natural daylight">Natural Daylight</option>
                 <option value="golden hour">Golden Hour</option>
@@ -347,11 +381,11 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-semibold">Direction</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Direction</label>
               <select
                 value={lightingDirection}
                 onChange={(e) => setLightingDirection(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="soft, diffused lighting from multiple sources">Three-Point (Diffused)</option>
                 <option value="front lighting">Front Lighting</option>
@@ -367,11 +401,11 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-semibold">Shadows</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Shadows</label>
               <select
                 value={shadows}
                 onChange={(e) => setShadows(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="soft shadows">Soft Shadows</option>
                 <option value="hard shadows">Hard Shadows</option>
@@ -387,16 +421,15 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
 
           {/* Aesthetics */}
           <div className="space-y-4 bg-white p-4 rounded-lg shadow-sm">
-            <h3 className="font-bold text-pink-600 flex items-center gap-2">
+            <h3 className="font-bold text-pink-600 flex items-center gap-2 text-sm sm:text-base">
               🎨 Aesthetics
-            </h3>
-            
+            </h3> 
             <div>
-              <label className="block mb-2 text-sm font-semibold">Color Scheme</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Color Scheme</label>
               <select
                 value={colorScheme}
                 onChange={(e) => setColorScheme(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="natural colors">Natural Colors</option>
                 <option value="warm tones">Warm Tones</option>
@@ -417,11 +450,11 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-semibold">Composition</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Composition</label>
               <select
                 value={composition}
                 onChange={(e) => setComposition(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="rule of thirds">Rule of Thirds</option>
                 <option value="centered, symmetrical, and balanced composition">Centered & Symmetrical</option>
@@ -438,11 +471,11 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-semibold">Mood & Atmosphere</label>
+              <label className="block mb-2 text-xs sm:text-sm font-semibold">Mood & Atmosphere</label>
               <select
                 value={moodAtmosphere}
                 onChange={(e) => setMoodAtmosphere(e.target.value)}
-                className="w-full p-2 border rounded-lg text-sm"
+                className="w-full p-2 border rounded-lg text-xs sm:text-sm"
               >
                 <option value="professional">Professional</option>
                 <option value="peaceful">Peaceful</option>
@@ -463,18 +496,18 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
           </div>
 
           {/* Quality Scores */}
-          <div className="space-y-4 bg-white p-4 rounded-lg shadow-sm md:col-span-2 lg:col-span-3">
-            <h3 className="font-bold text-green-600 flex items-center gap-2">
+          <div className="space-y-4 bg-white p-4 rounded-lg shadow-sm lg:col-span-2 xl:col-span-3">
+            <h3 className="font-bold text-green-600 flex items-center gap-2 text-sm sm:text-base">
               ⭐ Quality Scores
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block mb-2 text-sm font-semibold">Aesthetic Score</label>
+                <label className="block mb-2 text-xs sm:text-sm font-semibold">Aesthetic Score</label>
                 <select
                   value={aestheticScore}
                   onChange={(e) => setAestheticScore(e.target.value)}
-                  className="w-full p-2 border rounded-lg text-sm"
+                  className="w-full p-2 border rounded-lg text-xs sm:text-sm"
                 >
                   <option value="very high">Very High</option>
                   <option value="high">High</option>
@@ -486,11 +519,11 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
               </div>
 
               <div>
-                <label className="block mb-2 text-sm font-semibold">Preference Score</label>
+                <label className="block mb-2 text-xs sm:text-sm font-semibold">Preference Score</label>
                 <select
                   value={preferenceScore}
                   onChange={(e) => setPreferenceScore(e.target.value)}
-                  className="w-full p-2 border rounded-lg text-sm"
+                  className="w-full p-2 border rounded-lg text-xs sm:text-sm"
                 >
                   <option value="very high">Very High</option>
                   <option value="high">High</option>
@@ -506,12 +539,12 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
       )}
 
       {/* JSON Preview */}
-      <div className="mt-6">
-        <label className="block mb-2 font-semibold text-gray-700">
+      <div className="mt-4 sm:mt-6">
+        <label className="block mb-2 font-semibold text-gray-700 text-sm sm:text-base">
           FIBO Structured JSON (For Reference & Presets)
         </label>
         <textarea
-          className="w-full p-4 border-2 border-gray-300 rounded-lg font-mono text-xs bg-gray-900 text-green-400 focus:border-purple-500 focus:outline-none"
+          className="w-full p-3 sm:p-4 border-2 border-gray-300 rounded-lg font-mono text-xs bg-gray-900 text-green-400 focus:border-purple-500 focus:outline-none"
           value={jsonInput}
           onChange={(e) => setJsonInput(e.target.value)}
           rows={14}

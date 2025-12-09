@@ -1,4 +1,4 @@
-import React, { useState, useEffect, MutableRefObject } from 'react';
+import React, { useState, useEffect, MutableRefObject, useCallback } from 'react';
 import { History, X, RefreshCw, Shuffle, Download, Eye, Trash } from 'lucide-react';
 
 interface HistoryImage {
@@ -38,30 +38,33 @@ export default function ImageHistorySidebar({
     }
   }, []);
 
-  // Add new image to history
-  const addToHistory = (imageUrl: string, config: any, seed?: number) => {
+  // ✅ FIX: Use useCallback with functional state update to handle rapid batch additions
+  const addToHistory = useCallback((imageUrl: string, config: any, seed?: number) => {
     const MAX_SEED = 2147483647;
     const validSeed = seed && seed <= MAX_SEED 
       ? seed 
       : Math.floor(Math.random() * MAX_SEED);
     
     const newEntry: HistoryImage = {
-      id: Date.now().toString(),
+      id: Date.now().toString() + Math.random(), // Add random to ensure uniqueness in batch
       imageUrl,
       config,
       seed: validSeed,
       timestamp: new Date().toISOString(),
     };
 
-    const updated = [newEntry, ...history].slice(0, 50); // Keep last 50
-    setHistory(updated);
-    localStorage.setItem('fibo-history', JSON.stringify(updated));
-  };
+    // ✅ FIX: Use functional state update to avoid stale closure issues
+    setHistory(prevHistory => {
+      const updated = [newEntry, ...prevHistory].slice(0, 50); // Keep last 50
+      localStorage.setItem('fibo-history', JSON.stringify(updated));
+      return updated;
+    });
+  }, []); // Empty dependency array since we use functional updates
 
   // Expose addToHistory to parent via ref
   useEffect(() => {
     addToHistoryRef.current = addToHistory;
-  }, [history, addToHistoryRef]);
+  }, [addToHistory, addToHistoryRef]);
 
   const clearHistory = () => {
     if (confirm('Clear all image history?')) {
@@ -72,9 +75,11 @@ export default function ImageHistorySidebar({
   };
 
   const deleteImage = (id: string) => {
-    const updated = history.filter(img => img.id !== id);
-    setHistory(updated);
-    localStorage.setItem('fibo-history', JSON.stringify(updated));
+    setHistory(prevHistory => {
+      const updated = prevHistory.filter(img => img.id !== id);
+      localStorage.setItem('fibo-history', JSON.stringify(updated));
+      return updated;
+    });
     if (selectedImage?.id === id) {
       setSelectedImage(null);
     }
