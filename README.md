@@ -143,8 +143,95 @@ luxury watch with flowers
 ```
 
 **Progress tracking:** Real-time updates showing "Generating 3/10..." with live previews.
+# 4.🎨 HDR / High-Fidelity Color Output (New in v1.4)
 
-### 4. **Complete Generation History**
+Modern brands demand more than standard sRGB. This project now includes **full HDR generation controls**.
+
+## ✅ New UI Controls
+- **Checkbox:** `Enable HDR Mode`
+- **Slider:** `Bit Depth (8-bit / 16-bit)`
+- **Color Space Selector:** `sRGB / Display-P3 / ProPhoto RGB`
+- **File Size Estimator:** Shows projected HDR vs SDR output size
+
+## 🎨 Why This Matters
+Enabling HDR and wide-gamut color spaces provides:
+- Higher color accuracy
+- More realistic lighting
+- Eliminates banding in gradients
+- Supports cinema-grade workflows (Photoshop, DaVinci, Lightroom)
+
+## 📤 HDR in JSON Export
+```json
+{
+  "output": {
+    "hdr_mode": true,
+    "bit_depth": 16,
+    "color_space": "Display-P3"
+  }
+}
+```
+
+## 🛠️ HDR Color Pipeline (Technical Implementation)
+
+### 1. Color Space Validation
+- `sRGB` → standard gamut (web-safe)
+- `Display-P3` → ~25% wider gamut (Apple ecosystem)
+- `ProPhoto RGB` → extremely wide gamut (professional retouching)
+
+### 2. Bit Depth Mapping
+- **8-bit** → standard output
+- **16-bit** → smoother gradients, more detail
+
+### 3. File Size Prediction Model
+```
+FileSize ≈ Width × Height × (BitDepth / 8) × 3 channels × CompressionRatio
+```
+
+Example comparison:
+- 1024×1024 @ 8-bit PNG → ~1.5 MB
+- 1024×1024 @ 16-bit PNG → ~6.2 MB
+
+## 🧩 Updated LocalStorage Schema
+```typescript
+interface Preset {
+  id: string;
+  name: string;
+  config: FiboConfig;
+  output?: {
+    hdr_mode: boolean;
+    bit_depth: 8 | 16;
+    color_space: "sRGB" | "Display-P3" | "ProPhoto";
+  };
+  createdAt: string;
+}
+```
+
+## 📤 JSON Export Example (With HDR Fields)
+```json
+{
+  "short_description": "luxury watch on marble",
+  "style_medium": "photograph",
+  "lighting": {
+    "conditions": "studio lighting",
+    "direction": "Butterfly lighting",
+    "shadows": "soft shadows"
+  },
+  "output": {
+    "hdr_mode": true,
+    "bit_depth": 16,
+    "color_space": "Display-P3"
+  }
+}
+```
+
+## 🔮 Updated Future Enhancements
+6. **Full HDR Rendering Pipeline**
+   - 32-bit float EXR export
+   - ACEScg color space support
+   - LUT-based brand color calibration
+   - Advanced tone-mapping (Reinhard, Hable, Filmic)
+
+### 5. **Complete Generation History**
 
 Every image is stored with:
 - 🖼️ The generated image
@@ -637,7 +724,6 @@ Generate 20 variations with different moods:
 - **BRIA Team** for creating FIBO and hosting this hackathon
 - **Next.js Team** for the amazing App Router architecture
 - **Vercel** for seamless deployment platform
-- **OpenAI/Anthropic** (for helping debug that seed issue at 2 AM 😅)
 
 ---
 
