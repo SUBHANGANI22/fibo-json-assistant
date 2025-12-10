@@ -5,10 +5,10 @@ interface Props {
   jsonInput: string;
   setJsonInput: (val: string) => void;
   initialPrompt?: string;
-   onValidate?: (isValid: boolean) => void;
+  onValidate?: (isValid: boolean) => void;
 }
 
-export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = "",onValidate }: Props) {
+export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = "", onValidate }: Props) {
   // Core FIBO fields
   const [shortDescription, setShortDescription] = useState(initialPrompt);
   const [styleMedium, setStyleMedium] = useState("photograph");
@@ -34,13 +34,37 @@ export default function PromptEditor({ jsonInput, setJsonInput, initialPrompt = 
   const [focus, setFocus] = useState("sharp focus");
   const [lensFocalLength, setLensFocalLength] = useState("standard lens (50mm)");
   
+  // HDR Settings - Fixed type
+  const [enableHDR, setEnableHDR] = useState(false);
+  const [bitDepth, setBitDepth] = useState<number>(8);
+  const [colorSpace, setColorSpace] = useState<"sRGB" | "Display P3" | "ProPhoto RGB">("sRGB");
+  
   // Advanced Options
   const [showAdvanced, setShowAdvanced] = useState(false);
   const isExternalUpdate = useRef(false);
   const lastExternalJson = useRef("");
-const [errors, setErrors] = useState<{backgroundSetting?: string; context?: string}>({});
+  const [errors, setErrors] = useState<{backgroundSetting?: string; context?: string}>({});
 
- const validateFields = () => {
+  // Calculate estimated file size
+  const calculateFileSize = () => {
+    const baseSize = 1.5;
+    let sizeMultiplier = 1;
+    
+    if (enableHDR) {
+      if (bitDepth === 16) {
+        sizeMultiplier *= 2;
+      }
+      if (colorSpace === "Display P3") {
+        sizeMultiplier *= 1.1;
+      } else if (colorSpace === "ProPhoto RGB") {
+        sizeMultiplier *= 1.2;
+      }
+    }
+    
+    return (baseSize * sizeMultiplier).toFixed(2);
+  };
+
+  const validateFields = () => {
     const newErrors: {backgroundSetting?: string; context?: string} = {};
     
     if (!backgroundSetting.trim()) {
@@ -59,87 +83,123 @@ const [errors, setErrors] = useState<{backgroundSetting?: string; context?: stri
     
     return isValid;
   };
-  useEffect(() => {
-    if (isExternalUpdate.current) {
-      isExternalUpdate.current = false;
-      return;
-    }
 
-    const fiboJSON: any = {
-      short_description: shortDescription,
-      style_medium: styleMedium,
-      artistic_style: artisticStyle,
-      aesthetics: {
-        aesthetic_score: aestheticScore,
-        color_scheme: colorScheme,
-        composition: composition,
-        mood_atmosphere: moodAtmosphere,
-        preference_score: preferenceScore
-      },
-      lighting: {
-        conditions: lightingConditions,
-        direction: lightingDirection,
-        shadows: shadows
-      },
-      photographic_characteristics: {
-        camera_angle: cameraAngle,
-        depth_of_field: depthOfField,
-        focus: focus,
-        lens_focal_length: lensFocalLength
-      },
-      background_setting: backgroundSetting,
-      context: context,
-      objects: []
+
+useEffect(() => {
+  // Skip if this update came from parsing external JSON
+  if (isExternalUpdate.current) {
+    isExternalUpdate.current = false;
+    return;
+  }
+
+  const fiboJSON: any = {
+    short_description: shortDescription,
+    style_medium: styleMedium,
+    artistic_style: artisticStyle,
+    aesthetics: {
+      aesthetic_score: aestheticScore,
+      color_scheme: colorScheme,
+      composition: composition,
+      mood_atmosphere: moodAtmosphere,
+      preference_score: preferenceScore
+    },
+    lighting: {
+      conditions: lightingConditions,
+      direction: lightingDirection,
+      shadows: shadows
+    },
+    photographic_characteristics: {
+      camera_angle: cameraAngle,
+      depth_of_field: depthOfField,
+      focus: focus,
+      lens_focal_length: lensFocalLength
+    },
+    background_setting: backgroundSetting,
+    context: context,
+    objects: [],
+  };
+  
+  if (enableHDR) {
+    fiboJSON.hdr_settings = {
+      enabled: true,
+      bit_depth: bitDepth,
+      color_space: colorSpace
     };
+  }
 
-    const newJson = JSON.stringify(fiboJSON, null, 2);
+  const newJson = JSON.stringify(fiboJSON, null, 2);
+  
+  // Only update if JSON actually changed AND track it
+  if (newJson !== jsonInput) {
+    lastExternalJson.current = newJson;
     setJsonInput(newJson);
-  }, [
-    shortDescription, styleMedium, artisticStyle, backgroundSetting, context,
-    aestheticScore, colorScheme, composition, moodAtmosphere, preferenceScore,
-    lightingConditions, lightingDirection, shadows,
-    cameraAngle, depthOfField, focus, lensFocalLength,
-    setJsonInput
-  ]);
+  }
+}, [
+  shortDescription, styleMedium, artisticStyle, backgroundSetting, context,
+  aestheticScore, colorScheme, composition, moodAtmosphere, preferenceScore,
+  lightingConditions, lightingDirection, shadows,
+  cameraAngle, depthOfField, focus, lensFocalLength,
+  enableHDR, bitDepth, colorSpace,
+  setJsonInput
+]);
 
-  useEffect(() => {
-    if (jsonInput === lastExternalJson.current) {
-      return;
-    }
+// Effect 2: Parse JSON and update state
+useEffect(() => {
+  // Skip if this is our own generated JSON
+  if (jsonInput === lastExternalJson.current) {
+    return;
+  }
 
-    try {
-      if (jsonInput.trim()) {
-        const configFromInput = JSON.parse(jsonInput);
-        isExternalUpdate.current = true;
-        lastExternalJson.current = jsonInput;
-        setShortDescription(configFromInput.short_description || "");
-        setStyleMedium(configFromInput.style_medium || "photograph");
-        setArtisticStyle(configFromInput.artistic_style || "photorealistic");
-        setBackgroundSetting(configFromInput.background_setting || "");
-        setContext(configFromInput.context || "");
-        if (configFromInput.aesthetics) {
-          setAestheticScore(configFromInput.aesthetics.aesthetic_score || "high");
-          setColorScheme(configFromInput.aesthetics.color_scheme || "natural colors");
-          setComposition(configFromInput.aesthetics.composition || "rule of thirds");
-          setMoodAtmosphere(configFromInput.aesthetics.mood_atmosphere || "professional");
-          setPreferenceScore(configFromInput.aesthetics.preference_score || "high");
-        }
-        if (configFromInput.lighting) {
-          setLightingConditions(configFromInput.lighting.conditions || "natural daylight");
-          setLightingDirection(configFromInput.lighting.direction || "soft, diffused lighting from multiple sources");
-          setShadows(configFromInput.lighting.shadows || "soft shadows");
-        }
-        if (configFromInput.photographic_characteristics) {
-          setCameraAngle(configFromInput.photographic_characteristics.camera_angle || "eye-level");
-          setDepthOfField(configFromInput.photographic_characteristics.depth_of_field || "medium");
-          setFocus(configFromInput.photographic_characteristics.focus || "sharp focus");
-          setLensFocalLength(configFromInput.photographic_characteristics.lens_focal_length || "standard lens (50mm)");
-        }
+  try {
+    if (jsonInput.trim()) {
+      const configFromInput = JSON.parse(jsonInput);
+      
+      // Set flag BEFORE state updates
+      isExternalUpdate.current = true;
+      
+      // Update all state
+      setShortDescription(configFromInput.short_description || "");
+      setStyleMedium(configFromInput.style_medium || "photograph");
+      setArtisticStyle(configFromInput.artistic_style || "photorealistic");
+      setBackgroundSetting(configFromInput.background_setting || "");
+      setContext(configFromInput.context || "");
+      
+      if (configFromInput.aesthetics) {
+        setAestheticScore(configFromInput.aesthetics.aesthetic_score || "high");
+        setColorScheme(configFromInput.aesthetics.color_scheme || "natural colors");
+        setComposition(configFromInput.aesthetics.composition || "rule of thirds");
+        setMoodAtmosphere(configFromInput.aesthetics.mood_atmosphere || "professional");
+        setPreferenceScore(configFromInput.aesthetics.preference_score || "high");
       }
-    } catch (e) {
-      console.error("Failed to parse JSON for editor state update:", e);
+      
+      if (configFromInput.lighting) {
+        setLightingConditions(configFromInput.lighting.conditions || "natural daylight");
+        setLightingDirection(configFromInput.lighting.direction || "soft, diffused lighting from multiple sources");
+        setShadows(configFromInput.lighting.shadows || "soft shadows");
+      }
+      
+      if (configFromInput.photographic_characteristics) {
+        setCameraAngle(configFromInput.photographic_characteristics.camera_angle || "eye-level");
+        setDepthOfField(configFromInput.photographic_characteristics.depth_of_field || "medium");
+        setFocus(configFromInput.photographic_characteristics.focus || "sharp focus");
+        setLensFocalLength(configFromInput.photographic_characteristics.lens_focal_length || "standard lens (50mm)");
+      }
+      
+      if (configFromInput.hdr_settings) {
+        setEnableHDR(configFromInput.hdr_settings.enabled || false);
+        setBitDepth(configFromInput.hdr_settings.bit_depth || 8);
+        setColorSpace(configFromInput.hdr_settings.color_space || "sRGB");
+      }
+      
+      // Reset flag after React batches all state updates
+      setTimeout(() => {
+        isExternalUpdate.current = false;
+      }, 0);
     }
-  }, [jsonInput]);
+  } catch (e) {
+    console.error("Failed to parse JSON for editor state update:", e);
+  }
+}, [jsonInput]);
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 sm:p-6 mb-6 border border-gray-200">
@@ -236,6 +296,85 @@ const [errors, setErrors] = useState<{backgroundSetting?: string; context?: stri
             className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-sm sm:text-base"
           />
         </div>
+      </div>
+
+      {/* COMPACT HDR / High-Fidelity Color Settings */}
+      <div className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-50 to-pink-50 p-3 sm:p-4 rounded-lg border-2 border-purple-200">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-purple-700 flex items-center gap-2 text-sm sm:text-base">
+            🌈 HDR / High-Fidelity Color
+          </h3>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={enableHDR}
+              onChange={(e) => setEnableHDR(e.target.checked)}
+              className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+            />
+            <span className="text-sm font-semibold text-gray-700">Enable</span>
+          </label>
+        </div>
+
+        {enableHDR && (
+          <div className="space-y-3 pt-3 border-t border-purple-200">
+            {/* Compact Bit Depth & Color Space in one row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Bit Depth */}
+              <div>
+                <label className="block mb-2 text-xs font-semibold text-gray-700">
+                  Bit Depth: {bitDepth}-bit
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setBitDepth(8)}
+                    className={`flex-1 px-3 py-2 rounded text-xs font-semibold transition-all ${
+                      bitDepth === 8
+                        ? "bg-purple-600 text-white"
+                        : "bg-white border border-gray-300 text-gray-700 hover:border-purple-400"
+                    }`}
+                  >
+                    8-bit
+                  </button>
+                  <button
+                    onClick={() => setBitDepth(16)}
+                    className={`flex-1 px-3 py-2 rounded text-xs font-semibold transition-all ${
+                      bitDepth === 16
+                        ? "bg-purple-600 text-white"
+                        : "bg-white border border-gray-300 text-gray-700 hover:border-purple-400"
+                    }`}
+                  >
+                    16-bit
+                  </button>
+                </div>
+              </div>
+
+              {/* Color Space */}
+              <div>
+                <label className="block mb-2 text-xs font-semibold text-gray-700">Color Space</label>
+                <select
+                  value={colorSpace}
+                  onChange={(e) => setColorSpace(e.target.value as "sRGB" | "Display P3" | "ProPhoto RGB")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-xs focus:border-purple-500 focus:outline-none"
+                >
+                  <option value="sRGB">sRGB (Standard)</option>
+                  <option value="Display P3">Display P3 (+25% gamut)</option>
+                  <option value="ProPhoto RGB">ProPhoto RGB (Pro)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Compact File Size Info */}
+            <div className="flex items-center justify-between text-xs bg-white px-3 py-2 rounded border border-purple-200">
+              <span className="text-gray-600">Est. File Size:</span>
+              <span className="font-mono font-bold text-purple-700">{calculateFileSize()} MB</span>
+              <span className="text-gray-500">
+                {parseFloat(calculateFileSize()) > 1.5 
+                  ? `(+${((parseFloat(calculateFileSize()) / 1.5 - 1) * 100).toFixed(0)}%)`
+                  : "(baseline)"}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Advanced Options Toggle */}

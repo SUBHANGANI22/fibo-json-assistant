@@ -72,6 +72,30 @@ function convertFiboToPrompt(fiboJSON: any): string {
     }
   }
 
+  // FIXED: Add complete HDR color information to prompt if enabled
+  if (fiboJSON.hdr_settings?.enabled) {
+    const hdr = fiboJSON.hdr_settings;
+    const hdrDetails: string[] = [];
+    
+    // Always include bit depth when HDR is enabled
+    hdrDetails.push(`${hdr.bit_depth}-bit color depth`);
+    
+    // Always include color space
+    hdrDetails.push(`${hdr.color_space} color space`);
+    
+    // Add descriptive terms based on settings
+    if (hdr.bit_depth === 16) {
+      hdrDetails.push("professional grade color fidelity");
+    }
+    if (hdr.color_space === "Display P3") {
+      hdrDetails.push("wide color gamut");
+    } else if (hdr.color_space === "ProPhoto RGB") {
+      hdrDetails.push("maximum color range");
+    }
+    
+    parts.push(`HDR output: ${hdrDetails.join(", ")}`);
+  }
+
   if (fiboJSON.background_setting) {
     parts.push(`Background: ${fiboJSON.background_setting}`);
   }
@@ -141,6 +165,27 @@ export async function POST(req: Request) {
     console.log(`  ✓ Preference Score: ${body.aesthetics?.preference_score || 'default'}`);
     console.log(`  ✓ Background: ${body.background_setting || 'default'}`);
     console.log(`  ✓ Context: ${body.context || 'default'}`);
+    
+    // Log HDR settings
+    if (body.hdr_settings?.enabled) {
+      console.log("\n🌈 HDR SETTINGS:");
+      console.log(`  ✓ HDR Mode: ENABLED`);
+      console.log(`  ✓ Bit Depth: ${body.hdr_settings.bit_depth}-bit`);
+      console.log(`  ✓ Color Space: ${body.hdr_settings.color_space}`);
+      
+      // Calculate expected file size increase
+      const baseSizeMB = 1.5;
+      let sizeMultiplier = 1;
+      if (body.hdr_settings.bit_depth === 16) sizeMultiplier *= 2;
+      if (body.hdr_settings.color_space === "Display P3") sizeMultiplier *= 1.1;
+      if (body.hdr_settings.color_space === "ProPhoto RGB") sizeMultiplier *= 1.2;
+      const estimatedSize = (baseSizeMB * sizeMultiplier).toFixed(2);
+      
+      console.log(`  ✓ Estimated Size: ~${estimatedSize} MB`);
+      console.log(`  ✓ Size Increase: ${((sizeMultiplier - 1) * 100).toFixed(0)}%`);
+    } else {
+      console.log("\n🌈 HDR SETTINGS: Disabled (Standard 8-bit sRGB)");
+    }
 
     console.log("\n🚀 Sending to BRIA API...");
     console.log("=".repeat(80) + "\n");
@@ -256,14 +301,27 @@ export async function POST(req: Request) {
 
     console.log("✅ Image successfully retrieved!");
     console.log(`📦 Image size: ${(buffer.length / 1024).toFixed(2)} KB`);
+    
+    // Log HDR metadata in response
+    if (body.hdr_settings?.enabled) {
+      console.log(`🌈 HDR Metadata included in generation`);
+    }
+    
     console.log("=".repeat(80) + "\n");
 
-    return new Response(buffer, {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "no-cache",
-      },
-    });
+    // Include HDR settings in response headers for client reference
+    const headers: Record<string, string> = {
+      "Content-Type": "image/png",
+      "Cache-Control": "no-cache",
+    };
+    
+    if (body.hdr_settings?.enabled) {
+      headers["X-HDR-Enabled"] = "true";
+      headers["X-HDR-Bit-Depth"] = body.hdr_settings.bit_depth.toString();
+      headers["X-HDR-Color-Space"] = body.hdr_settings.color_space;
+    }
+
+    return new Response(buffer, { headers });
 
   } catch (error: any) {
     console.error("\n❌ FIBO GENERATION ERROR:");
