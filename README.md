@@ -51,6 +51,7 @@ cp .env.example .env.local
 # Run the development server
 npm run dev -->
 
+```
 ---
 
 ## 📦 Demo & Examples
@@ -119,8 +120,8 @@ Instead of guessing at prompts, users work with FIBO's structured JSON format th
   "context": "product photography",
   "objects": []
 }
-```
 
+```
 Every parameter is **reproducible**, **version-controllable**, and **programmatically modifiable**.
 
 ### 2. **Style Preset System**
@@ -137,8 +138,6 @@ The game-changing feature: save your perfect style configurations as reusable pr
 ### 3. **Intelligent Batch Generation**
 
 Generate up to 20 images simultaneously while maintaining style consistency:
-
-```
 Input (one prompt per line):
 luxury watch on marble
 luxury watch on leather  
@@ -147,7 +146,7 @@ luxury watch with flowers
 
 Output: 4 images, identical style, different subjects
 Time saved: ~15 minutes → ~2 minutes
-```
+
 
 Real-time progress tracking shows "Generating 3/10..." with live previews as each image completes.
 
