@@ -57,7 +57,7 @@ npm run dev -->
 ## 📦 Demo & Examples
 
 📌 Images and JSON examples are in the `/examples` folder  
-📌 Demo Video: **(link to your demo video)**
+📌 Demo Video: **(https://youtu.be/cnxznzy9zbc)**
 
 *(Live generation may be disabled due to Bria API limits — please see demo video for full workflow.)*
 
@@ -663,7 +663,7 @@ The preset system, batch generation engine, and exact regeneration via seeds dem
 
 - **Live Demo:** [(https://fibo-json-assistant-subhanganijha.vercel.app/)]
 - **GitHub Repository:** [https://github.com/SUBHANGANI22/fibo-json-assistant]
-- **Demo Video:** [Coming soon]
+- **Demo Video:** [https://youtu.be/cnxznzy9zbc]
 
 ---
 
