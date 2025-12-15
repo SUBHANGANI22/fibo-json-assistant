@@ -94,25 +94,30 @@ Instead of guessing at prompts, users work with FIBO's structured JSON format th
 
 ```json
 {
-  "short_description": "luxury watch on marble surface",
+  "short_description": " luxury watch on marble surface",
   "style_medium": "photograph",
   "artistic_style": "photorealistic",
-  "photographic_characteristics": {
-    "camera_angle": "high angle",
-    "lens_focal_length": "macro lens",
-    "depth_of_field": "shallow",
-    "focus": "sharp focus"
-  },
-  "lighting": {
-    "conditions": "studio lighting",
-    "direction": "butterfly lighting",
-    "shadows": "soft shadows"
-  },
   "aesthetics": {
+    "aesthetic_score": "high",
     "color_scheme": "warm tones",
     "composition": "rule of thirds",
-    "mood_atmosphere": "professional"
-  }
+    "mood_atmosphere": "professional",
+    "preference_score": "high"
+  },
+  "lighting": {
+    "conditions": "bright, even studio lighting",
+    "direction": "soft, diffused lighting from multiple sources",
+    "shadows": "soft shadows"
+  },
+  "photographic_characteristics": {
+    "camera_angle": "high angle",
+    "depth_of_field": "medium",
+    "focus": "sharp focus",
+    "lens_focal_length": "macro lens"
+  },
+  "background_setting": "white marble",
+  "context": "product photography",
+  "objects": []
 }
 ```
 
