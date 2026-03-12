@@ -3,14 +3,6 @@
 ![Project Banner](https://img.shields.io/badge/BRIA-FIBO-purple) ![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js-black) ![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)
 
 ---
-
-
-## 🏆 Entry
-
-**Category:** Best JSON-Native or Agentic Workflow
-
-**Built for:** Bria FIBO Hackathon 2025
-
 ## Model Usage
 This project uses the Bria FIBO text-to-image model.
 The demo video shows live API-based generation.
